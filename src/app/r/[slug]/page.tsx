@@ -63,6 +63,7 @@ export default async function PublicMenuPage({
 
   return (
     <PublicMenu
+      slug={slug}
       restaurantName={restaurant.name}
       tableNumber={session.table}
       sections={(sections as MenuSectionWithItems[] | null) ?? []}

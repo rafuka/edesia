@@ -12,6 +12,13 @@ export const MENU_SESSION_COOKIE = "menu_session";
 export const MENU_SESSION_DURATION_MS = 20 * 60 * 1000;
 export const MENU_SESSION_DURATION_SECONDS = MENU_SESSION_DURATION_MS / 1000;
 
+/**
+ * How long a table is considered "present" (green dot) after its last heartbeat.
+ * Must comfortably exceed the client heartbeat interval so a table doesn't
+ * flicker between beats. Heartbeat interval is ~45s (see MenuLive).
+ */
+export const TABLE_PRESENCE_TTL_SECONDS = 90;
+
 export interface MenuSession {
   /** Restaurant slug the session was opened for. */
   slug: string;

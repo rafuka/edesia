@@ -1,26 +1,77 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
-import { addTables } from "@/app/dashboard/tables/actions";
+import {
+  addTables,
+  getTableActivity,
+  resolveWaiterCall,
+  type TableActivity,
+} from "@/app/dashboard/tables/actions";
 import { TableQR } from "@/components/tables/table-qr";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { RestaurantTable } from "@/lib/types";
 
+const POLL_INTERVAL_MS = 7_000;
+
 export function TablesManager({
   slug,
   tables,
+  initialActivity,
 }: {
   slug: string;
   tables: RestaurantTable[];
+  initialActivity: TableActivity;
 }) {
   const router = useRouter();
   const [count, setCount] = useState("1");
   const [submitting, setSubmitting] = useState(false);
+  const [activity, setActivity] = useState<TableActivity>(initialActivity);
+
+  const openSessions = useMemo(
+    () => new Set(activity.sessions),
+    [activity.sessions],
+  );
+  const openCalls = useMemo(() => new Set(activity.calls), [activity.calls]);
+
+  // Poll live table activity so the status dots stay current.
+  useEffect(() => {
+    let cancelled = false;
+    const poll = async () => {
+      if (document.visibilityState !== "visible") return;
+      const next = await getTableActivity();
+      if (!cancelled) setActivity(next);
+    };
+
+    void poll();
+    const interval = setInterval(poll, POLL_INTERVAL_MS);
+    document.addEventListener("visibilitychange", poll);
+
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", poll);
+    };
+  }, []);
+
+  async function handleClearCall(tableNumber: number) {
+    // Optimistically clear; reconcile from the server on failure.
+    setActivity((a) => ({
+      ...a,
+      calls: a.calls.filter((n) => n !== tableNumber),
+    }));
+    const result = await resolveWaiterCall(tableNumber);
+    if (result.error) {
+      toast.error(result.error);
+      setActivity(await getTableActivity());
+      return;
+    }
+    toast.success(`Table ${tableNumber} — waiter call cleared`);
+  }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -76,14 +127,35 @@ export function TablesManager({
       </form>
 
       <section>
-        <h2 className="mb-3 text-sm font-medium text-muted-foreground">
-          {tables.length} {tables.length === 1 ? "table" : "tables"}
-        </h2>
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
+          <h2 className="text-sm font-medium text-muted-foreground">
+            {tables.length} {tables.length === 1 ? "table" : "tables"}
+          </h2>
+          {tables.length > 0 && (
+            <div className="flex items-center gap-4 text-xs text-muted-foreground">
+              <span className="flex items-center gap-1.5">
+                <span className="size-2.5 rounded-full bg-emerald-500" />
+                Menu open
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="size-2.5 rounded-full bg-orange-500" />
+                Waiter requested
+              </span>
+            </div>
+          )}
+        </div>
 
         {tables.length > 0 ? (
           <ul className="grid grid-cols-[repeat(auto-fill,minmax(10rem,1fr))] gap-3">
             {tables.map((table) => (
-              <TableQR key={table.id} slug={slug} number={table.number} />
+              <TableQR
+                key={table.id}
+                slug={slug}
+                number={table.number}
+                hasSession={openSessions.has(table.number)}
+                hasCall={openCalls.has(table.number)}
+                onClearCall={handleClearCall}
+              />
             ))}
           </ul>
         ) : (

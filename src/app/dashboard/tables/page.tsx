@@ -1,3 +1,4 @@
+import { getTableActivity } from "@/app/dashboard/tables/actions";
 import { TablesManager } from "@/components/tables/tables-manager";
 import { getCurrentRestaurant } from "@/lib/restaurant";
 import { createClient } from "@/lib/supabase/server";
@@ -14,10 +15,13 @@ export default async function TablesPage() {
     .eq("restaurant_id", restaurant.id)
     .order("number", { ascending: true });
 
+  const initialActivity = await getTableActivity();
+
   return (
     <TablesManager
       slug={restaurant.slug}
       tables={(tables as RestaurantTable[] | null) ?? []}
+      initialActivity={initialActivity}
     />
   );
 }

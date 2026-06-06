@@ -1,16 +1,20 @@
+import { MenuLive } from "@/components/menu/menu-live";
 import { PublicMenuItem } from "@/components/menu/public-menu-item";
 import type { MenuSectionWithItems } from "@/lib/types";
 
 /**
  * Read-only, mobile-first menu shown to a diner after scanning a table's QR
  * code. Items are tappable (see {@link PublicMenuItem}); the session gate lives
- * in the page.
+ * in the page. {@link MenuLive} keeps the table's presence fresh and renders the
+ * floating "call a waiter" button.
  */
 export function PublicMenu({
+  slug,
   restaurantName,
   tableNumber,
   sections,
 }: {
+  slug: string;
   restaurantName: string;
   tableNumber: number;
   sections: MenuSectionWithItems[];
@@ -53,6 +57,8 @@ export function PublicMenu({
           ))}
         </div>
       )}
+
+      <MenuLive slug={slug} />
     </main>
   );
 }

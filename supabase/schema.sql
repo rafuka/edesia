@@ -292,3 +292,72 @@ create policy "public reads sections" on public.menu_sections
 drop policy if exists "public reads items" on public.menu_items;
 create policy "public reads items" on public.menu_items
   for select to anon, authenticated using (true);
+
+-- ----------------------------------------------------------------
+--  Live table activity for the dashboard:
+--    * table_presence — which tables currently have the menu open
+--      (refreshed by heartbeats from the public menu).
+--    * waiter_calls   — "call a waiter" requests; active while resolved_at null.
+--  Both are written by the service role from cookie-gated server actions (which
+--  bypass RLS), so only owner SELECT (and owner UPDATE to resolve calls) is
+--  granted below — no public/anon write policies.
+-- ----------------------------------------------------------------
+
+create table if not exists public.table_presence (
+  restaurant_id uuid not null references public.restaurants (id) on delete cascade,
+  table_number  integer not null,
+  last_seen     timestamptz not null default now(),
+  primary key (restaurant_id, table_number)
+);
+
+alter table public.table_presence enable row level security;
+
+drop policy if exists "owner reads presence" on public.table_presence;
+create policy "owner reads presence" on public.table_presence
+  for select to authenticated
+  using (
+    exists (
+      select 1 from public.restaurants r
+      where r.id = table_presence.restaurant_id and r.owner_id = auth.uid()
+    )
+  );
+
+create table if not exists public.waiter_calls (
+  id            uuid primary key default gen_random_uuid(),
+  restaurant_id uuid not null references public.restaurants (id) on delete cascade,
+  table_number  integer not null,
+  created_at    timestamptz not null default now(),
+  resolved_at   timestamptz
+);
+
+create index if not exists waiter_calls_active_idx
+  on public.waiter_calls (restaurant_id, table_number)
+  where resolved_at is null;
+
+alter table public.waiter_calls enable row level security;
+
+drop policy if exists "owner reads calls" on public.waiter_calls;
+create policy "owner reads calls" on public.waiter_calls
+  for select to authenticated
+  using (
+    exists (
+      select 1 from public.restaurants r
+      where r.id = waiter_calls.restaurant_id and r.owner_id = auth.uid()
+    )
+  );
+
+drop policy if exists "owner resolves calls" on public.waiter_calls;
+create policy "owner resolves calls" on public.waiter_calls
+  for update to authenticated
+  using (
+    exists (
+      select 1 from public.restaurants r
+      where r.id = waiter_calls.restaurant_id and r.owner_id = auth.uid()
+    )
+  )
+  with check (
+    exists (
+      select 1 from public.restaurants r
+      where r.id = waiter_calls.restaurant_id and r.owner_id = auth.uid()
+    )
+  );

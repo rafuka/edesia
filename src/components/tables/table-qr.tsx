@@ -22,8 +22,24 @@ function useOrigin() {
  * Renders a table's QR code and lets staff download it as a PNG to print.
  * The encoded link is derived from the restaurant slug and table number, so a
  * table "comes with" a QR the moment it exists — nothing is stored server-side.
+ *
+ * Live status dots: green when a diner has the menu open (`hasSession`), and a
+ * pulsing orange call button when a waiter has been requested (`hasCall`) —
+ * clicking it acknowledges/clears the call.
  */
-export function TableQR({ slug, number }: { slug: string; number: number }) {
+export function TableQR({
+  slug,
+  number,
+  hasSession = false,
+  hasCall = false,
+  onClearCall,
+}: {
+  slug: string;
+  number: number;
+  hasSession?: boolean;
+  hasCall?: boolean;
+  onClearCall?: (tableNumber: number) => void;
+}) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const origin = useOrigin();
 
@@ -39,7 +55,32 @@ export function TableQR({ slug, number }: { slug: string; number: number }) {
   }
 
   return (
-    <li className="flex flex-col items-center gap-3 rounded-xl border bg-card p-4 text-center">
+    <li className="relative flex flex-col items-center gap-3 rounded-xl border bg-card p-4 text-center">
+      {hasSession && (
+        <span
+          className="absolute left-2 top-2"
+          title="Menu session open"
+        >
+          <span className="block size-2.5 rounded-full bg-emerald-500 ring-2 ring-card" />
+          <span className="sr-only">Menu session open</span>
+        </span>
+      )}
+
+      {hasCall && (
+        <button
+          type="button"
+          onClick={() => onClearCall?.(number)}
+          title="Waiter requested — click to clear"
+          className="absolute right-2 top-2 inline-flex size-5 items-center justify-center rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <span className="absolute inline-flex size-3.5 animate-ping rounded-full bg-orange-400 opacity-75" />
+          <span className="relative block size-2.5 rounded-full bg-orange-500 ring-2 ring-card" />
+          <span className="sr-only">
+            Waiter requested for table {number} — click to clear
+          </span>
+        </button>
+      )}
+
       <div className="text-xs text-muted-foreground">
         Table{" "}
         <span className="text-sm font-semibold tabular-nums text-foreground">

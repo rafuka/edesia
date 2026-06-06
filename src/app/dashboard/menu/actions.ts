@@ -79,7 +79,10 @@ export async function createMediaUploadUrl(
 
 // ----------------------------- Sections ------------------------------
 
-export async function addSection(name: string): Promise<ActionResult> {
+export async function addSection(
+  name: string,
+  description?: string | null,
+): Promise<ActionResult> {
   const trimmed = name.trim();
   if (!trimmed) return { error: "Section name is required." };
 
@@ -97,6 +100,7 @@ export async function addSection(name: string): Promise<ActionResult> {
   const { error } = await supabase.from("menu_sections").insert({
     restaurant_id: restaurant.id,
     name: trimmed,
+    description: description?.trim() || null,
     position: count ?? 0,
   });
 
@@ -105,9 +109,10 @@ export async function addSection(name: string): Promise<ActionResult> {
   return {};
 }
 
-export async function renameSection(
+export async function updateSection(
   sectionId: string,
   name: string,
+  description?: string | null,
 ): Promise<ActionResult> {
   const trimmed = name.trim();
   if (!trimmed) return { error: "Section name is required." };
@@ -115,7 +120,7 @@ export async function renameSection(
   const supabase = await createClient();
   const { error } = await supabase
     .from("menu_sections")
-    .update({ name: trimmed })
+    .update({ name: trimmed, description: description?.trim() || null })
     .eq("id", sectionId);
 
   if (error) return { error: error.message };

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { addSection, renameSection } from "@/app/dashboard/menu/actions";
+import { addSection, updateSection } from "@/app/dashboard/menu/actions";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -16,27 +16,32 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 
 interface SectionDialogProps {
-  /** Provide a sectionId to rename; omit to create a new section. */
+  /** Provide a sectionId to edit; omit to create a new section. */
   sectionId?: string;
   initialName?: string;
+  initialDescription?: string | null;
   trigger: React.ReactElement;
 }
 
 export function SectionDialog({
   sectionId,
   initialName,
+  initialDescription,
   trigger,
 }: SectionDialogProps) {
   const router = useRouter();
-  const isRename = Boolean(sectionId);
+  const isEdit = Boolean(sectionId);
   const [open, setOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    const name = String(new FormData(e.currentTarget).get("name") ?? "").trim();
+    const formData = new FormData(e.currentTarget);
+    const name = String(formData.get("name") ?? "").trim();
+    const description = String(formData.get("description") ?? "");
     if (!name) {
       toast.error("Section name is required.");
       return;
@@ -44,15 +49,15 @@ export function SectionDialog({
 
     setSubmitting(true);
     try {
-      const result = isRename
-        ? await renameSection(sectionId!, name)
-        : await addSection(name);
+      const result = isEdit
+        ? await updateSection(sectionId!, name, description)
+        : await addSection(name, description);
 
       if (result.error) {
         toast.error(result.error);
         return;
       }
-      toast.success(isRename ? "Section renamed" : "Section added");
+      toast.success(isEdit ? "Section saved" : "Section added");
       setOpen(false);
       router.refresh();
     } finally {
@@ -65,7 +70,7 @@ export function SectionDialog({
       <DialogTrigger render={trigger} />
       <DialogContent className="sm:max-w-sm">
         <DialogHeader>
-          <DialogTitle>{isRename ? "Rename section" : "Add section"}</DialogTitle>
+          <DialogTitle>{isEdit ? "Edit section" : "Add section"}</DialogTitle>
           <DialogDescription>
             Sections group items on your menu (e.g. Starters, Mains, Drinks).
           </DialogDescription>
@@ -82,9 +87,24 @@ export function SectionDialog({
               placeholder="Starters"
             />
           </div>
+          <div className="space-y-2">
+            <Label htmlFor="section-description">
+              Description{" "}
+              <span className="font-normal text-muted-foreground">
+                (optional)
+              </span>
+            </Label>
+            <Textarea
+              id="section-description"
+              name="description"
+              defaultValue={initialDescription ?? ""}
+              rows={3}
+              placeholder="A short note shown under the section heading."
+            />
+          </div>
           <DialogFooter>
             <Button type="submit" disabled={submitting}>
-              {submitting ? "Saving…" : isRename ? "Save" : "Add section"}
+              {submitting ? "Saving…" : isEdit ? "Save" : "Add section"}
             </Button>
           </DialogFooter>
         </form>

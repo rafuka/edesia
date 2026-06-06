@@ -1,17 +1,10 @@
-import Image from "next/image";
+import { PublicMenuItem } from "@/components/menu/public-menu-item";
 import type { MenuSectionWithItems } from "@/lib/types";
-
-function formatPrice(price: number | null): string | null {
-  if (price == null) return null;
-  return new Intl.NumberFormat(undefined, {
-    style: "currency",
-    currency: "USD",
-  }).format(price);
-}
 
 /**
  * Read-only, mobile-first menu shown to a diner after scanning a table's QR
- * code. Purely presentational — the session gate lives in the page.
+ * code. Items are tappable (see {@link PublicMenuItem}); the session gate lives
+ * in the page.
  */
 export function PublicMenu({
   restaurantName,
@@ -41,52 +34,20 @@ export function PublicMenu({
         <div className="space-y-10">
           {visibleSections.map((section) => (
             <section key={section.id}>
-              <h2 className="mb-4 border-b pb-2 text-xl font-semibold">
-                {section.name}
-              </h2>
-              <ul className="space-y-5">
-                {section.menu_items.map((item) => {
-                  const price = formatPrice(item.price);
-                  return (
-                    <li key={item.id} className="flex gap-4">
-                      {item.media_url && item.media_type === "image" ? (
-                        <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-lg bg-muted">
-                          <Image
-                            src={item.media_url}
-                            alt={item.name}
-                            fill
-                            sizes="96px"
-                            className="object-cover"
-                          />
-                        </div>
-                      ) : item.media_url && item.media_type === "video" ? (
-                        <video
-                          src={item.media_url}
-                          className="h-24 w-24 shrink-0 rounded-lg bg-muted object-cover"
-                          muted
-                          playsInline
-                          controls
-                        />
-                      ) : null}
-
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-baseline justify-between gap-3">
-                          <h3 className="font-medium">{item.name}</h3>
-                          {price && (
-                            <span className="shrink-0 text-sm font-medium tabular-nums text-muted-foreground">
-                              {price}
-                            </span>
-                          )}
-                        </div>
-                        {item.description && (
-                          <p className="mt-1 text-sm text-muted-foreground">
-                            {item.description}
-                          </p>
-                        )}
-                      </div>
-                    </li>
-                  );
-                })}
+              <div className="mb-4 border-b pb-2">
+                <h2 className="text-xl font-semibold">{section.name}</h2>
+                {section.description && (
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    {section.description}
+                  </p>
+                )}
+              </div>
+              <ul className="space-y-1">
+                {section.menu_items.map((item) => (
+                  <li key={item.id}>
+                    <PublicMenuItem item={item} />
+                  </li>
+                ))}
               </ul>
             </section>
           ))}

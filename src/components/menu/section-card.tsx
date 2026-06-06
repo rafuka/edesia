@@ -47,21 +47,29 @@ export function SectionCard({
 
   return (
     <section className="rounded-xl border bg-background">
-      <div className="flex items-center justify-between gap-2 border-b px-4 py-3">
-        <div className="flex items-center gap-2">
-          <h2 className="text-lg font-semibold">{section.name}</h2>
-          <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
-            {items.length} {items.length === 1 ? "item" : "items"}
-          </span>
+      <div className="flex items-start justify-between gap-2 border-b px-4 py-3">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <h2 className="text-lg font-semibold">{section.name}</h2>
+            <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+              {items.length} {items.length === 1 ? "item" : "items"}
+            </span>
+          </div>
+          {section.description && (
+            <p className="mt-1 text-sm text-muted-foreground">
+              {section.description}
+            </p>
+          )}
         </div>
         <div className="flex items-center gap-1">
           <SectionDialog
             sectionId={section.id}
             initialName={section.name}
+            initialDescription={section.description}
             trigger={
               <Button variant="ghost" size="icon" className="h-8 w-8">
                 <Pencil className="h-4 w-4" />
-                <span className="sr-only">Rename section</span>
+                <span className="sr-only">Edit section</span>
               </Button>
             }
           />

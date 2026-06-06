@@ -22,6 +22,7 @@ create table if not exists public.menu_sections (
   id            uuid primary key default gen_random_uuid(),
   restaurant_id uuid not null references public.restaurants (id) on delete cascade,
   name          text not null,
+  description   text,
   position      int  not null default 0,
   created_at    timestamptz not null default now()
 );

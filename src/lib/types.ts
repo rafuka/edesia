@@ -25,6 +25,7 @@ export interface MenuSection {
   id: string;
   restaurant_id: string;
   name: string;
+  description: string | null;
   position: number;
   created_at: string;
 }
